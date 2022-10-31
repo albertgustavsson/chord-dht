@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "se.umu.cs.ads.chord";
+
+package chord;
+
+service ChordService {
+	rpc hello(StringMessage) returns (StringMessage);
+}
+
+message StringMessage {
+	string content = 1;
+}
