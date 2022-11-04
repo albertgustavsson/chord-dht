@@ -41,12 +41,12 @@ public class ChordGrpcClient {
 
 	/**
 	 * Call the findSuccessor method on another node.
-	 * @param identifier the identifier to pass to the method.
 	 * @param address the address to the node.
 	 * @param port the port to use for connecting to the node.
+	 * @param identifier the identifier to pass to the method.
 	 * @return the successor returned from the node.
 	 */
-	public static NodeInfo findSuccessor(BigInteger identifier, String address, int port) {
+	public static NodeInfo findSuccessor(String address, int port, BigInteger identifier) {
 		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
 		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
 

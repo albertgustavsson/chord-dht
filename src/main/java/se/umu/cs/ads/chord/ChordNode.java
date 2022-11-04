@@ -135,7 +135,7 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 		} else {
 			NodeInfo nPrime = closestPrecedingNode(identifier);
 			System.out.println("Forwarding request to " + nPrime.address);
-			successor = ChordGrpcClient.findSuccessor(identifier, nPrime.address, port);
+			successor = ChordGrpcClient.findSuccessor(nPrime.address, port, identifier);
 		}
 
 		Node response = Node.newBuilder()
@@ -172,11 +172,11 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 
 		BigInteger identifier;
 		identifier = node.getLocalIdentifier();
-		System.out.println("Finding the successor to 0x" + identifier.toString(16) + " : " + ChordGrpcClient.findSuccessor(identifier,"localhost", port));
+		System.out.println("Finding the successor to 0x" + identifier.toString(16) + " : " + ChordGrpcClient.findSuccessor("localhost", port, identifier));
 		identifier = node.getLocalIdentifier().add(BigInteger.ONE);
-		System.out.println("Finding the successor to 0x" + identifier.toString(16) + " : " + ChordGrpcClient.findSuccessor(identifier,"localhost", port));
+		System.out.println("Finding the successor to 0x" + identifier.toString(16) + " : " + ChordGrpcClient.findSuccessor("localhost", port, identifier));
 		identifier = node.getLocalIdentifier().subtract(BigInteger.ONE);
-		System.out.println("Finding the successor to 0x" + identifier.toString(16) + " : " + ChordGrpcClient.findSuccessor(identifier,"localhost", port));
+		System.out.println("Finding the successor to 0x" + identifier.toString(16) + " : " + ChordGrpcClient.findSuccessor("localhost", port, identifier));
 
 		node.shutdown();
 		node.awaitTermination();
