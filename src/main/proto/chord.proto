@@ -7,10 +7,21 @@ package chord;
 
 service ChordService {
 	rpc healthCheck(HealthCheckRequest) returns (HealthCheckResponse); // Check status of node
+	rpc findSuccessor(Identifier) returns (Node);
 }
 
 message HealthCheckRequest {}
 
 message HealthCheckResponse {
 	bool status = 1;
+}
+
+// An identifier in the hash space
+message Identifier {
+	bytes value = 1;
+}
+
+message Node {
+	Identifier identifier = 1;
+	string address = 2;
 }

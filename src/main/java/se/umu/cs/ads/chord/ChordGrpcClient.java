@@ -1,10 +1,12 @@
 package se.umu.cs.ads.chord;
 
+import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
+import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
 public class ChordGrpcClient {
@@ -35,5 +37,24 @@ public class ChordGrpcClient {
 
 		channel.shutdown();
 		return status;
+	}
+
+	/**
+	 * Call the findSuccessor method on another node.
+	 * @param identifier the identifier to pass to the method.
+	 * @param address the address to the node.
+	 * @param port the port to use for connecting to the node.
+	 * @return the successor returned from the node.
+	 */
+	public static NodeInfo findSuccessor(BigInteger identifier, String address, int port) {
+		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
+		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
+
+		Identifier request = Identifier.newBuilder().setValue(ByteString.copyFrom(identifier.toByteArray())).build();
+
+		Node response = stub.findSuccessor(request);
+
+		channel.shutdown();
+		return new NodeInfo(new BigInteger(1,response.getIdentifier().getValue().toByteArray()), response.getAddress());
 	}
 }
