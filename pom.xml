@@ -16,23 +16,24 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
+		<maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty</artifactId>
-			<version>1.16.1</version>
+			<version>1.50.2</version>
 		</dependency>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-protobuf</artifactId>
-			<version>1.16.1</version>
+			<version>1.50.2</version>
 		</dependency>
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-stub</artifactId>
-			<version>1.16.1</version>
+			<version>1.50.2</version>
 		</dependency>
 	</dependencies>
 
@@ -41,7 +42,7 @@
 			<extension>
 				<groupId>kr.motd.maven</groupId>
 				<artifactId>os-maven-plugin</artifactId>
-				<version>1.6.1</version>
+				<version>1.7.0</version>
 			</extension>
 		</extensions>
 		<plugins>
@@ -50,10 +51,10 @@
 				<artifactId>protobuf-maven-plugin</artifactId>
 				<version>0.6.1</version>
 				<configuration>
-					<protocArtifact>com.google.protobuf:protoc:3.3.0:exe:${os.detected.classifier}</protocArtifact>
+					<protocArtifact>com.google.protobuf:protoc:3.21.9:exe:${os.detected.classifier}</protocArtifact>
 					<pluginId>grpc-java</pluginId>
 					<pluginId>grpc-java</pluginId>
-					<pluginArtifact>io.grpc:protoc-gen-grpc-java:1.4.0:exe:${os.detected.classifier}</pluginArtifact>
+					<pluginArtifact>io.grpc:protoc-gen-grpc-java:1.50.2:exe:${os.detected.classifier}</pluginArtifact>
 					<protoSourceRoot>src/main/proto</protoSourceRoot>
 				</configuration>
 				<executions>
@@ -70,7 +71,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>se.umu.cs.ads.chord.GrpcServer</mainClass>
+							<mainClass>se.umu.cs.ads.chord.ChordNode</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>

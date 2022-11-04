@@ -6,9 +6,11 @@ option java_package = "se.umu.cs.ads.chord";
 package chord;
 
 service ChordService {
-	rpc hello(StringMessage) returns (StringMessage);
+	rpc healthCheck(HealthCheckRequest) returns (HealthCheckResponse); // Check status of node
 }
 
-message StringMessage {
-	string content = 1;
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+	bool status = 1;
 }
