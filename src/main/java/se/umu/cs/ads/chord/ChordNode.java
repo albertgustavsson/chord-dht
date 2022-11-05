@@ -1,6 +1,7 @@
 package se.umu.cs.ads.chord;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Empty;
 import io.grpc.Context;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -13,6 +14,7 @@ import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Optional;
 
 public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 	private static final int port = 4321;
@@ -26,6 +28,8 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 	private final NodeInfo[] fingerTable = new NodeInfo[fingerTableSize];
 	private NodeInfo predecessorNode; // Predecessor's address and identifier
 	private final NodeInfo localNode; // This node's address and identifier
+
+	private int nextFingerToFix;
 
 	/**
 	 * Constructor for a Chord node.
@@ -44,6 +48,17 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 		server = ServerBuilder.forPort(port).addService(this).build();
 		server.start();
 		System.out.println("Node is listening on " + localNode.address + ":" + port);
+	}
+
+	/**
+	 * Constructor for a Chord node. Also joins and existing Chord network.
+	 * @param otherNode address to a Chord node in an existing Chord network.
+	 * @throws NoSuchAlgorithmException if a MessageDigest for SHA-1 cannot be found.
+	 * @throws IOException if there is an error with address resolution or server initialization.
+	 */
+	public ChordNode(String otherNode) throws NoSuchAlgorithmException, IOException {
+		this();
+		this.join(otherNode);
 	}
 
 	public BigInteger getLocalIdentifier() {
@@ -94,12 +109,21 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 	}
 
 	/**
+	 * Join an existing Chord network.
+	 * @param address the address to a node in the existing network.
+	 */
+	private void join(String address) {
+		predecessorNode = null;
+		this.fingerTable[0] = ChordGrpcClient.findSuccessor(address, port, this.localNode.identifier);
+	}
+
+	/**
 	 * Handler for incoming healthCheck requests.
 	 * @param request the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
-	public void healthCheck(HealthCheckRequest request, StreamObserver<HealthCheckResponse> responseObserver) {
+	public void healthCheck(Empty request, StreamObserver<HealthCheckResponse> responseObserver) {
 		System.out.println("Got healthCheck request");
 
 		if (Context.current().isCancelled()) {
@@ -150,6 +174,43 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 	}
 
 	/**
+	 * Handler for incoming getPredecessor requests.
+	 * @param request the request.
+	 * @param responseObserver observer for the response.
+	 */
+	@Override
+	public void getPredecessor(Empty request, StreamObserver<GetPredecessorResponse> responseObserver) {
+		GetPredecessorResponse response = GetPredecessorResponse.newBuilder().setNode(
+			Node.newBuilder()
+				.setIdentifier(Identifier.newBuilder().setValue(
+					ByteString.copyFrom(predecessorNode.identifier.toByteArray())).build())
+				.setAddress(predecessorNode.address)
+				.build()).build();
+
+		responseObserver.onNext(response);
+		responseObserver.onCompleted();
+	}
+
+	/**
+	 * Handler for incoming notify requests.
+	 * @param request the request.
+	 * @param responseObserver observer for the response.
+	 */
+	@Override
+	public void notify(Node request, StreamObserver<Empty> responseObserver) {
+		NodeInfo potentialPredecessor = new NodeInfo(
+			new BigInteger(1,request.getIdentifier().getValue().toByteArray()),request.getAddress());
+		if (predecessorNode == null ||
+			RangeUtils.valueIsInRangeExclExcl(
+				potentialPredecessor.identifier, predecessorNode.identifier, localNode.identifier, hashRangeSize)) {
+			predecessorNode = potentialPredecessor;
+		}
+
+		responseObserver.onNext(Empty.getDefaultInstance());
+		responseObserver.onCompleted();
+	}
+
+	/**
 	 * Find the highest known node preceding the given identifier based on this node's finger table.
 	 * @param identifier the identifier.
 	 * @return the highest known node.
@@ -161,6 +222,47 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 			}
 		}
 		return new NodeInfo(localNode); // Return this node as the closest preceding node.
+	}
+
+	/**
+	 * Verifies this node's successor and notifies the successor of this node.
+	 * This method should be called periodically.
+	 */
+	private void stabilize() { // TODO: call this periodically
+		// Get successors predecessor
+		Optional<NodeInfo> nodeInfoOptional = ChordGrpcClient.getPredecessor(fingerTable[0].address, port);
+		if (nodeInfoOptional.isPresent()) {
+			NodeInfo x = nodeInfoOptional.get();
+			if (RangeUtils.valueIsInRangeExclExcl(
+				x.identifier, localNode.identifier, fingerTable[0].identifier, hashRangeSize)) {
+				fingerTable[0] = x;
+			}
+		}
+
+		// Notify successor that I think I'm their predecessor
+		ChordGrpcClient.notify(fingerTable[0].address, port, localNode);
+	}
+
+	/**
+	 * Refreshes finger table entries.
+	 * This method should be called periodically.
+	 */
+	private void fixFingers() { // TODO: call this periodically
+		nextFingerToFix = (nextFingerToFix+1) % fingerTableSize;
+		fingerTable[nextFingerToFix] = ChordGrpcClient.findSuccessor(localNode.address, port,
+			localNode.identifier.add(BigInteger.ONE.shiftLeft(nextFingerToFix)));
+	}
+
+	/**
+	 * Checks if the predecessor has failed.
+	 * This method should be called periodically.
+	 */
+	private void checkPredecessor() { // TODO: call this periodically
+		int healthCheckTimeout = 150;
+		if (ChordGrpcClient.healthCheck(predecessorNode.address, port, healthCheckTimeout)) {
+			// Predecessor has failed.
+			predecessorNode = null;
+		}
 	}
 
 	public static void main(String[] args) throws NoSuchAlgorithmException, IOException, InterruptedException {

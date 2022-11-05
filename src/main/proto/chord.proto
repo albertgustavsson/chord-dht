@@ -3,14 +3,16 @@ syntax = "proto3";
 option java_multiple_files = true;
 option java_package = "se.umu.cs.ads.chord";
 
+import "google/protobuf/empty.proto";
+
 package chord;
 
 service ChordService {
-	rpc healthCheck(HealthCheckRequest) returns (HealthCheckResponse); // Check status of node
+	rpc healthCheck(google.protobuf.Empty) returns (HealthCheckResponse); // Check status of node
 	rpc findSuccessor(Identifier) returns (Node);
+	rpc getPredecessor(google.protobuf.Empty) returns (GetPredecessorResponse);
+	rpc notify(Node) returns (google.protobuf.Empty);
 }
-
-message HealthCheckRequest {}
 
 message HealthCheckResponse {
 	bool status = 1;
@@ -24,4 +26,8 @@ message Identifier {
 message Node {
 	Identifier identifier = 1;
 	string address = 2;
+}
+
+message GetPredecessorResponse {
+	optional Node node = 1;
 }
