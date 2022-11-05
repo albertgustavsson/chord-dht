@@ -1,13 +1,5 @@
 package se.umu.cs.ads.chord;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Empty;
-import io.grpc.Context;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
-import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -16,12 +8,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Optional;
 
-public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
+public class ChordNode implements ChordGrpcServerHandler {
 	private static final int port = 4321;
 	private static final int hashBits = 160;
 	private static final BigInteger hashRangeSize = BigInteger.ONE.shiftLeft(hashBits);
 
-	private final Server server; // Server for incoming requests
+	private final ChordGrpcServer server; // Server for incoming requests
 	private final MessageDigest hasher;
 
 	private static final int fingerTableSize = 3; // 1 for only successor
@@ -45,8 +37,7 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 		fingerTable[0] = new NodeInfo(localNode); // Successor is the node itself
 
 		// Start server for requests from other nodes
-		server = ServerBuilder.forPort(port).addService(this).build();
-		server.start();
+		server = new ChordGrpcServer(this, port);
 		System.out.println("Node is listening on " + localNode.address + ":" + port);
 	}
 
@@ -119,32 +110,22 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming healthCheck requests.
-	 * @param request the request.
-	 * @param responseObserver observer for the response.
+	 * @return the status of the node.
 	 */
 	@Override
-	public void healthCheck(Empty request, StreamObserver<HealthCheckResponse> responseObserver) {
+	public boolean healthCheck() {
 		System.out.println("Got healthCheck request");
 
-		if (Context.current().isCancelled()) {
-			responseObserver.onError(Status.CANCELLED.withDescription("Cancelled by client").asRuntimeException());
-			return;
-		}
-
-		HealthCheckResponse response = HealthCheckResponse.newBuilder().setStatus(true).build();
-
-		responseObserver.onNext(response);
-		responseObserver.onCompleted();
+		return true;
 	}
 
 	/**
 	 * Handler for incoming findSuccessor requests.
-	 * @param request the request.
-	 * @param responseObserver observer for the response.
+	 * @param identifier the identifier to find the successor of.
+	 * @return the node that succeeds the identifier.
 	 */
 	@Override
-	public void findSuccessor(Identifier request, StreamObserver<Node> responseObserver) {
-		BigInteger identifier = new BigInteger(1,request.getValue().toByteArray());
+	public NodeInfo findSuccessor(BigInteger identifier) {
 		System.out.println("Got findSuccessor request for identifier 0x" + identifier.toString(16));
 
 		NodeInfo successor;
@@ -162,52 +143,29 @@ public class ChordNode extends ChordServiceGrpc.ChordServiceImplBase {
 			successor = ChordGrpcClient.findSuccessor(nPrime.address, port, identifier);
 		}
 
-		Node response = Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(
-				ByteString.copyFrom(successor.identifier.toByteArray())
-			).build())
-			.setAddress(successor.address)
-			.build();
-
-		responseObserver.onNext(response);
-		responseObserver.onCompleted();
+		return successor;
 	}
 
 	/**
 	 * Handler for incoming getPredecessor requests.
-	 * @param request the request.
-	 * @param responseObserver observer for the response.
+	 * @return the predecessor of this node if it has one.
 	 */
 	@Override
-	public void getPredecessor(Empty request, StreamObserver<GetPredecessorResponse> responseObserver) {
-		GetPredecessorResponse response = GetPredecessorResponse.newBuilder().setNode(
-			Node.newBuilder()
-				.setIdentifier(Identifier.newBuilder().setValue(
-					ByteString.copyFrom(predecessorNode.identifier.toByteArray())).build())
-				.setAddress(predecessorNode.address)
-				.build()).build();
-
-		responseObserver.onNext(response);
-		responseObserver.onCompleted();
+	public Optional<NodeInfo> getPredecessor() {
+		return Optional.ofNullable(predecessorNode);
 	}
 
 	/**
 	 * Handler for incoming notify requests.
-	 * @param request the request.
-	 * @param responseObserver observer for the response.
+	 * @param potentialPredecessor a potential predecessor of this node.
 	 */
 	@Override
-	public void notify(Node request, StreamObserver<Empty> responseObserver) {
-		NodeInfo potentialPredecessor = new NodeInfo(
-			new BigInteger(1,request.getIdentifier().getValue().toByteArray()),request.getAddress());
+	public void notify(NodeInfo potentialPredecessor) {
 		if (predecessorNode == null ||
 			RangeUtils.valueIsInRangeExclExcl(
 				potentialPredecessor.identifier, predecessorNode.identifier, localNode.identifier, hashRangeSize)) {
 			predecessorNode = potentialPredecessor;
 		}
-
-		responseObserver.onNext(Empty.getDefaultInstance());
-		responseObserver.onCompleted();
 	}
 
 	/**
