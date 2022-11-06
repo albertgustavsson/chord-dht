@@ -11,7 +11,7 @@ service ChordService {
 	rpc healthCheck(google.protobuf.Empty) returns (HealthCheckResponse);
 	rpc findSuccessor(Identifier) returns (Node);
 	rpc getSuccessor(google.protobuf.Empty) returns (Node);
-	rpc getPredecessor(google.protobuf.Empty) returns (GetPredecessorResponse);
+	rpc getPredecessor(google.protobuf.Empty) returns (Node);
 	rpc closestPrecedingFinger(Identifier) returns (Node);
 	rpc notify(Node) returns (google.protobuf.Empty);
 }
@@ -28,8 +28,4 @@ message Identifier {
 message Node {
 	Identifier identifier = 1;
 	string address = 2;
-}
-
-message GetPredecessorResponse {
-	optional Node node = 1;
 }

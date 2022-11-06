@@ -2,7 +2,6 @@ package se.umu.cs.ads.chord;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Optional;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
@@ -117,17 +116,11 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
-	public void getPredecessor(Empty request, StreamObserver<GetPredecessorResponse> responseObserver) {
-		Optional<NodeInfo> predecessorOptional = handler.getPredecessor();
+	public void getPredecessor(Empty request, StreamObserver<Node> responseObserver) {
+		NodeInfo predecessor = handler.getPredecessor();
 
-		GetPredecessorResponse.Builder responseBuilder = GetPredecessorResponse.newBuilder();
+		Node response = GrpcTypeHelper.nodeFromNodeInfo(predecessor);
 
-		predecessorOptional.ifPresent(nodeInfo -> responseBuilder.setNode(Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(nodeInfo.id.toByteArray())).build())
-			.setAddress(nodeInfo.address)
-			.build()));
-
-		GetPredecessorResponse response = responseBuilder.build();
 		responseObserver.onNext(response);
 		responseObserver.onCompleted();
 	}

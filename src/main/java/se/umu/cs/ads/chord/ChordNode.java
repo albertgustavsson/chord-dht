@@ -6,7 +6,6 @@ import java.net.InetAddress;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Optional;
 
 public class ChordNode implements ChordGrpcServerHandler {
 	private static final int port = 4321;
@@ -18,7 +17,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 
 	private static final int fingerTableSize = 3; // 1 for only successor
 	private final NodeInfo[] fingerTable = new NodeInfo[fingerTableSize];
-	private NodeInfo predecessorNode; // Predecessor's address and identifier
+	private NodeInfo predecessor; // Predecessor's address and identifier
 	private final NodeInfo localNode; // This node's address and identifier
 
 	private int nextFingerToFix;
@@ -66,7 +65,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	@Override
 	public String toString() {
 		return "ChordNode{" + "\n\tfingerTable=" + Arrays.toString(fingerTable) + "\n\tpredecessorNode=" +
-			predecessorNode + "\n\tlocalNode=" + localNode + "\n}";
+			predecessor + "\n\tlocalNode=" + localNode + "\n}";
 	}
 
 	/**
@@ -104,11 +103,25 @@ public class ChordNode implements ChordGrpcServerHandler {
 	/**
 	 * Join an existing Chord network.
 	 *
-	 * @param address the address to a node in the existing network.
+	 * @param otherNode the address to a node in the existing network.
 	 */
-	private void join(String address) {
-		predecessorNode = null;
-		this.fingerTable[0] = ChordGrpcClient.findSuccessor(address, port, localNode.id);
+	private void join(String otherNode) {
+		if (otherNode != null) { // Should join another node
+			initFingerTable(otherNode);
+			updateOthers();
+			// move keys in (predecessor; n] from successor
+		} else { // This is the only node in the network
+			// All fingers point to the node itself
+			for (int i = 0; i < fingerTableSize; i++) {
+				fingerTable[i] = new NodeInfo(localNode);
+			}
+			// The predecessor is the node itself
+			predecessor = new NodeInfo(localNode);
+		}
+
+
+		predecessor = null;
+		this.fingerTable[0] = ChordGrpcClient.findSuccessor(otherNode, port, localNode.id);
 	}
 
 	/**
@@ -136,12 +149,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	private void stabilize() { // TODO: call this periodically
 		// Get successors predecessor
-		Optional<NodeInfo> nodeInfoOptional = ChordGrpcClient.getPredecessor(fingerTable[0].address, port);
-		if (nodeInfoOptional.isPresent()) {
-			NodeInfo x = nodeInfoOptional.get();
-			if (RangeUtils.valueIsInRangeExclExcl(x.id, localNode.id, fingerTable[0].id, hashRangeSize)) {
-				fingerTable[0] = x;
-			}
+		NodeInfo x = ChordGrpcClient.getPredecessor(fingerTable[0].address, port);
+		if (RangeUtils.valueIsInRangeExclExcl(x.id, localNode.id, fingerTable[0].id, hashRangeSize)) {
+			fingerTable[0] = x;
 		}
 
 		// Notify successor that I think I'm their predecessor
@@ -162,9 +172,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	private void checkPredecessor() { // TODO: call this periodically
 		int healthCheckTimeout = 150;
-		if (ChordGrpcClient.healthCheck(predecessorNode.address, port, healthCheckTimeout)) {
+		if (ChordGrpcClient.healthCheck(predecessor.address, port, healthCheckTimeout)) {
 			// Predecessor has failed.
-			predecessorNode = null;
+			predecessor = null;
 		}
 	}
 
@@ -207,11 +217,11 @@ public class ChordNode implements ChordGrpcServerHandler {
 	/**
 	 * Handler for incoming getPredecessor requests.
 	 *
-	 * @return the predecessor of this node if it has one.
+	 * @return the predecessor of this node.
 	 */
 	@Override
-	public Optional<NodeInfo> getPredecessor() {
-		return Optional.ofNullable(predecessorNode);
+	public NodeInfo getPredecessor() {
+		return predecessor;
 	}
 
 	/**
@@ -239,9 +249,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public void notify(NodeInfo potentialPredecessor) {
-		if (predecessorNode == null || RangeUtils.valueIsInRangeExclExcl(
-			potentialPredecessor.id, predecessorNode.id, localNode.id, hashRangeSize)) {
-			predecessorNode = potentialPredecessor;
+		if (predecessor == null || RangeUtils.valueIsInRangeExclExcl(
+			potentialPredecessor.id, predecessor.id, localNode.id, hashRangeSize)) {
+			predecessor = potentialPredecessor;
 		}
 	}
 

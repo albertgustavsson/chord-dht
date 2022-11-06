@@ -1,7 +1,6 @@
 package se.umu.cs.ads.chord;
 
 import java.math.BigInteger;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.Empty;
@@ -89,21 +88,17 @@ public class ChordGrpcClient {
 	 * @param address the address to the node.
 	 * @param port    the port to use for connecting to the node.
 	 *
-	 * @return the predecessor returned from the node. If the other node has no predecessor, nothing is returned.
+	 * @return the predecessor returned from the node.
 	 */
-	public static Optional<NodeInfo> getPredecessor(String address, int port) {
+	public static NodeInfo getPredecessor(String address, int port) {
 		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
 		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
 
-		GetPredecessorResponse response = stub.getPredecessor(Empty.getDefaultInstance());
+		Node response = stub.getPredecessor(Empty.getDefaultInstance());
 
 		channel.shutdown();
 
-		if (response.hasNode()) {
-			return Optional.of(GrpcTypeHelper.nodeInfoFromNode(response.getNode()));
-		} else {
-			return Optional.empty();
-		}
+		return GrpcTypeHelper.nodeInfoFromNode(response);
 	}
 
 	/**

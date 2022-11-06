@@ -1,7 +1,6 @@
 package se.umu.cs.ads.chord;
 
 import java.math.BigInteger;
-import java.util.Optional;
 
 /**
  * Interface for methods to handle incoming requests for the Chord node.
@@ -13,7 +12,7 @@ public interface ChordGrpcServerHandler {
 
 	NodeInfo getSuccessor();
 
-	Optional<NodeInfo> getPredecessor();
+	NodeInfo getPredecessor();
 
 	NodeInfo closestPrecedingFinger(BigInteger identifier);
 
