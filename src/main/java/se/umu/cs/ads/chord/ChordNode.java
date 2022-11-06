@@ -112,6 +112,63 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
+	 * Finds the predecessor of an identifier.
+	 *
+	 * @param id the identifier to find the predecessor of.
+	 *
+	 * @return the node that precedes the identifier.
+	 */
+	private NodeInfo findPredecessor(BigInteger id) {
+		NodeInfo nPrime = localNode;
+		NodeInfo nPrimeSuccessor = ChordGrpcClient.getSuccessor(nPrime.address, port);
+		while (!((RangeUtils.valueIsInRangeExclIncl(id, nPrime.id, nPrimeSuccessor.id, hashRangeSize)) ||
+			nPrime.address.equals(nPrimeSuccessor.address))) {
+			nPrime = ChordGrpcClient.closestPrecedingFinger(nPrime.address, port, id);
+			nPrimeSuccessor = ChordGrpcClient.getSuccessor(nPrime.address, port);
+		}
+
+		return new NodeInfo(nPrime);
+	}
+
+	/**
+	 * Verifies this node's successor and notifies the successor of this node. This method should be called
+	 * periodically.
+	 */
+	private void stabilize() { // TODO: call this periodically
+		// Get successors predecessor
+		Optional<NodeInfo> nodeInfoOptional = ChordGrpcClient.getPredecessor(fingerTable[0].address, port);
+		if (nodeInfoOptional.isPresent()) {
+			NodeInfo x = nodeInfoOptional.get();
+			if (RangeUtils.valueIsInRangeExclExcl(x.id, localNode.id, fingerTable[0].id, hashRangeSize)) {
+				fingerTable[0] = x;
+			}
+		}
+
+		// Notify successor that I think I'm their predecessor
+		ChordGrpcClient.notify(fingerTable[0].address, port, localNode);
+	}
+
+	/**
+	 * Refreshes finger table entries. This method should be called periodically.
+	 */
+	private void fixFingers() { // TODO: call this periodically
+		nextFingerToFix = (nextFingerToFix + 1) % fingerTableSize;
+		fingerTable[nextFingerToFix] = ChordGrpcClient.findSuccessor(localNode.address, port,
+			localNode.id.add(BigInteger.ONE.shiftLeft(nextFingerToFix)));
+	}
+
+	/**
+	 * Checks if the predecessor has failed. This method should be called periodically.
+	 */
+	private void checkPredecessor() { // TODO: call this periodically
+		int healthCheckTimeout = 150;
+		if (ChordGrpcClient.healthCheck(predecessorNode.address, port, healthCheckTimeout)) {
+			// Predecessor has failed.
+			predecessorNode = null;
+		}
+	}
+
+	/**
 	 * Handler for incoming healthCheck requests.
 	 *
 	 * @return the status of the node.
@@ -185,63 +242,6 @@ public class ChordNode implements ChordGrpcServerHandler {
 		if (predecessorNode == null || RangeUtils.valueIsInRangeExclExcl(
 			potentialPredecessor.id, predecessorNode.id, localNode.id, hashRangeSize)) {
 			predecessorNode = potentialPredecessor;
-		}
-	}
-
-	/**
-	 * Finds the predecessor of an identifier.
-	 *
-	 * @param id the identifier to find the predecessor of.
-	 *
-	 * @return the node that precedes the identifier.
-	 */
-	private NodeInfo findPredecessor(BigInteger id) {
-		NodeInfo nPrime = localNode;
-		NodeInfo nPrimeSuccessor = ChordGrpcClient.getSuccessor(nPrime.address, port);
-		while (!((RangeUtils.valueIsInRangeExclIncl(id, nPrime.id, nPrimeSuccessor.id, hashRangeSize)) ||
-			nPrime.address.equals(nPrimeSuccessor.address))) {
-			nPrime = ChordGrpcClient.closestPrecedingFinger(nPrime.address, port, id);
-			nPrimeSuccessor = ChordGrpcClient.getSuccessor(nPrime.address, port);
-		}
-
-		return new NodeInfo(nPrime);
-	}
-
-	/**
-	 * Verifies this node's successor and notifies the successor of this node. This method should be called
-	 * periodically.
-	 */
-	private void stabilize() { // TODO: call this periodically
-		// Get successors predecessor
-		Optional<NodeInfo> nodeInfoOptional = ChordGrpcClient.getPredecessor(fingerTable[0].address, port);
-		if (nodeInfoOptional.isPresent()) {
-			NodeInfo x = nodeInfoOptional.get();
-			if (RangeUtils.valueIsInRangeExclExcl(x.id, localNode.id, fingerTable[0].id, hashRangeSize)) {
-				fingerTable[0] = x;
-			}
-		}
-
-		// Notify successor that I think I'm their predecessor
-		ChordGrpcClient.notify(fingerTable[0].address, port, localNode);
-	}
-
-	/**
-	 * Refreshes finger table entries. This method should be called periodically.
-	 */
-	private void fixFingers() { // TODO: call this periodically
-		nextFingerToFix = (nextFingerToFix + 1) % fingerTableSize;
-		fingerTable[nextFingerToFix] = ChordGrpcClient.findSuccessor(localNode.address, port,
-			localNode.id.add(BigInteger.ONE.shiftLeft(nextFingerToFix)));
-	}
-
-	/**
-	 * Checks if the predecessor has failed. This method should be called periodically.
-	 */
-	private void checkPredecessor() { // TODO: call this periodically
-		int healthCheckTimeout = 150;
-		if (ChordGrpcClient.healthCheck(predecessorNode.address, port, healthCheckTimeout)) {
-			// Predecessor has failed.
-			predecessorNode = null;
 		}
 	}
 
