@@ -14,13 +14,15 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
-	private ChordGrpcServerHandler handler;
+	private final ChordGrpcServerHandler handler;
 	private final Server server;
 
 	/**
 	 * Creates a new server for incoming gRPC calls.
+	 *
 	 * @param handler a handler for the requests.
-	 * @param port the port to bind the server to.
+	 * @param port    the port to bind the server to.
+	 *
 	 * @throws IOException if there is an error with address resolution or server initialization.
 	 */
 	public ChordGrpcServer(ChordGrpcServerHandler handler, int port) throws IOException {
@@ -31,8 +33,7 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	}
 
 	/**
-	 * Initiates shutdown of the server.
-	 * Preexisting calls may continue, but no new calls can be made to the server.
+	 * Initiates shutdown of the server. Preexisting calls may continue, but no new calls can be made to the server.
 	 * awaitTermination should be used to wait until all preexisting calls have finished.
 	 */
 	public void shutdown() {
@@ -41,6 +42,7 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Wait for any ongoing calls to the server to finish.
+	 *
 	 * @throws InterruptedException if the method is interrupted while waiting.
 	 */
 	public void awaitTermination() throws InterruptedException {
@@ -49,7 +51,8 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming healthCheck requests.
-	 * @param request the request.
+	 *
+	 * @param request          the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
@@ -69,19 +72,18 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming findSuccessor requests.
-	 * @param request the request.
+	 *
+	 * @param request          the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
 	public void findSuccessor(Identifier request, StreamObserver<Node> responseObserver) {
-		BigInteger identifier = new BigInteger(1,request.getValue().toByteArray());
+		BigInteger identifier = new BigInteger(1, request.getValue().toByteArray());
 
 		NodeInfo successor = handler.findSuccessor(identifier);
 
 		Node response = Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(
-				ByteString.copyFrom(successor.identifier.toByteArray())
-			).build())
+			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(successor.id.toByteArray())).build())
 			.setAddress(successor.address)
 			.build();
 
@@ -91,7 +93,8 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming getSuccessor requests.
-	 * @param request the request.
+	 *
+	 * @param request          the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
@@ -99,8 +102,9 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 		NodeInfo successor = handler.getSuccessor();
 
 		Node response = Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(successor.identifier.toByteArray())).build())
-			.setAddress(successor.address).build();
+			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(successor.id.toByteArray())).build())
+			.setAddress(successor.address)
+			.build();
 
 		responseObserver.onNext(response);
 		responseObserver.onCompleted();
@@ -108,7 +112,8 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming getPredecessor requests.
-	 * @param request the request.
+	 *
+	 * @param request          the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
@@ -118,7 +123,7 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 		GetPredecessorResponse.Builder responseBuilder = GetPredecessorResponse.newBuilder();
 
 		predecessorOptional.ifPresent(nodeInfo -> responseBuilder.setNode(Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(nodeInfo.identifier.toByteArray())).build())
+			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(nodeInfo.id.toByteArray())).build())
 			.setAddress(nodeInfo.address)
 			.build()));
 
@@ -129,19 +134,17 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming closestPrecedingFinger requests.
-	 * @param request the request.
+	 *
+	 * @param request          the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
 	public void closestPrecedingFinger(Identifier request, StreamObserver<Node> responseObserver) {
-		BigInteger identifier = new BigInteger(1,request.getValue().toByteArray());
+		BigInteger identifier = new BigInteger(1, request.getValue().toByteArray());
 
 		NodeInfo finger = handler.closestPrecedingFinger(identifier);
 
-		Node response = Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(finger.identifier.toByteArray())).build())
-			.setAddress(finger.address)
-			.build();
+		Node response = GrpcTypeHelper.nodeFromNodeInfo(finger);
 
 		responseObserver.onNext(response);
 		responseObserver.onCompleted();
@@ -149,14 +152,13 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 
 	/**
 	 * Handler for incoming notify requests.
-	 * @param request the request.
+	 *
+	 * @param request          the request.
 	 * @param responseObserver observer for the response.
 	 */
 	@Override
 	public void notify(Node request, StreamObserver<Empty> responseObserver) {
-		NodeInfo potentialPredecessor = new NodeInfo(
-			new BigInteger(1,request.getIdentifier().getValue().toByteArray()),
-			request.getAddress());
+		NodeInfo potentialPredecessor = GrpcTypeHelper.nodeInfoFromNode(request);
 
 		handler.notify(potentialPredecessor);
 

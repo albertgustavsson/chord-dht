@@ -3,20 +3,20 @@ package se.umu.cs.ads.chord;
 import java.math.BigInteger;
 
 class NodeInfo {
-	final BigInteger identifier;
+	final BigInteger id;
 	final String address;
 
-	public NodeInfo(BigInteger identifier, String address) {
-		this.identifier = identifier;
+	public NodeInfo(BigInteger id, String address) {
+		this.id = id;
 		this.address = address;
 	}
 
 	public NodeInfo(NodeInfo other) { // Copy constructor
-		this(other.identifier, other.address);
+		this(other.id, other.address);
 	}
 
 	@Override
 	public String toString() {
-		return "NodeInfo{identifier=0x" + identifier.toString(16) + ", address='" + address + "'}";
+		return "NodeInfo{identifier=0x" + id.toString(16) + ", address='" + address + "'}";
 	}
 }

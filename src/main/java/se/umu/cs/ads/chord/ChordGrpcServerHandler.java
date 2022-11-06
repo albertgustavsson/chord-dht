@@ -8,9 +8,14 @@ import java.util.Optional;
  */
 public interface ChordGrpcServerHandler {
 	boolean healthCheck();
+
 	NodeInfo findSuccessor(BigInteger identifier);
+
 	NodeInfo getSuccessor();
+
 	Optional<NodeInfo> getPredecessor();
+
 	NodeInfo closestPrecedingFinger(BigInteger identifier);
+
 	void notify(NodeInfo potentialPredecessor);
 }
