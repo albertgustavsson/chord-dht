@@ -10,7 +10,9 @@ package chord;
 service ChordService {
 	rpc healthCheck(google.protobuf.Empty) returns (HealthCheckResponse); // Check status of node
 	rpc findSuccessor(Identifier) returns (Node);
+	rpc getSuccessor(google.protobuf.Empty) returns (Node);
 	rpc getPredecessor(google.protobuf.Empty) returns (GetPredecessorResponse);
+	rpc closestPrecedingFinger(Identifier) returns (Node);
 	rpc notify(Node) returns (google.protobuf.Empty);
 }
 

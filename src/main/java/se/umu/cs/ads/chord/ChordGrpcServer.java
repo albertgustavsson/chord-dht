@@ -90,6 +90,23 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	}
 
 	/**
+	 * Handler for incoming getSuccessor requests.
+	 * @param request the request.
+	 * @param responseObserver observer for the response.
+	 */
+	@Override
+	public void getSuccessor(Empty request, StreamObserver<Node> responseObserver) {
+		NodeInfo successor = handler.getSuccessor();
+
+		Node response = Node.newBuilder()
+			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(successor.identifier.toByteArray())).build())
+			.setAddress(successor.address).build();
+
+		responseObserver.onNext(response);
+		responseObserver.onCompleted();
+	}
+
+	/**
 	 * Handler for incoming getPredecessor requests.
 	 * @param request the request.
 	 * @param responseObserver observer for the response.
@@ -106,6 +123,26 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 			.build()));
 
 		GetPredecessorResponse response = responseBuilder.build();
+		responseObserver.onNext(response);
+		responseObserver.onCompleted();
+	}
+
+	/**
+	 * Handler for incoming closestPrecedingFinger requests.
+	 * @param request the request.
+	 * @param responseObserver observer for the response.
+	 */
+	@Override
+	public void closestPrecedingFinger(Identifier request, StreamObserver<Node> responseObserver) {
+		BigInteger identifier = new BigInteger(1,request.getValue().toByteArray());
+
+		NodeInfo finger = handler.closestPrecedingFinger(identifier);
+
+		Node response = Node.newBuilder()
+			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(finger.identifier.toByteArray())).build())
+			.setAddress(finger.address)
+			.build();
+
 		responseObserver.onNext(response);
 		responseObserver.onCompleted();
 	}

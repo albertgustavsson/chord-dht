@@ -128,22 +128,17 @@ public class ChordNode implements ChordGrpcServerHandler {
 	public NodeInfo findSuccessor(BigInteger identifier) {
 		System.out.println("Got findSuccessor request for identifier 0x" + identifier.toString(16));
 
-		NodeInfo successor;
-		if (this.localNode.address.equals(this.fingerTable[0].address)) {
-			// This node is its own successor. It is alone in the ring.
-			System.out.println("The identifier is between me and my successor (myself). Returning myself.");
-			successor = new NodeInfo(this.localNode);
-		} else if (RangeUtils.valueIsInRangeExclIncl(identifier, this.localNode.identifier, this.fingerTable[0].identifier, hashRangeSize)) {
-			// Requested identifier is between this node and the successor. Return the successor.
-			System.out.println("The identifier is between me and my successor. Returning my successor.");
-			successor = new NodeInfo(this.fingerTable[0]);
-		} else {
-			NodeInfo nPrime = closestPrecedingNode(identifier);
-			System.out.println("Forwarding request to " + nPrime.address);
-			successor = ChordGrpcClient.findSuccessor(nPrime.address, port, identifier);
-		}
+		NodeInfo identifierPredecessor = this.findPredecessor(identifier);
+		return ChordGrpcClient.getSuccessor(identifierPredecessor.address, port);
+	}
 
-		return successor;
+	/**
+	 * Handler for incoming getSuccessor requests.
+	 * @return the successor of this node.
+	 */
+	@Override
+	public NodeInfo getSuccessor() {
+		return new NodeInfo(fingerTable[0]);
 	}
 
 	/**
@@ -153,6 +148,21 @@ public class ChordNode implements ChordGrpcServerHandler {
 	@Override
 	public Optional<NodeInfo> getPredecessor() {
 		return Optional.ofNullable(predecessorNode);
+	}
+
+	/**
+	 * Find the highest known node preceding the given identifier based on this node's finger table.
+	 * @param identifier the identifier.
+	 * @return the highest known node.
+	 */
+	@Override
+	public NodeInfo closestPrecedingFinger(BigInteger identifier) {
+		for (int i = fingerTableSize-1; i >= 0; i--) {
+			if (fingerTable[i] != null && RangeUtils.valueIsInRangeExclExcl(fingerTable[i].identifier, this.localNode.identifier, identifier, hashRangeSize)) {
+				return fingerTable[i];
+			}
+		}
+		return new NodeInfo(localNode); // Return this node as the closest preceding node.
 	}
 
 	/**
@@ -169,17 +179,21 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * Find the highest known node preceding the given identifier based on this node's finger table.
-	 * @param identifier the identifier.
-	 * @return the highest known node.
+	 * Finds the predecessor of an identifier.
+	 * @param identifier the identifier to find the predecessor of.
+	 * @return the node that precedes the identifier.
 	 */
-	private NodeInfo closestPrecedingNode(BigInteger identifier) {
-		for (int i = fingerTableSize-1; i >= 0; i--) {
-			if (fingerTable[i] != null && RangeUtils.valueIsInRangeExclExcl(fingerTable[i].identifier, this.localNode.identifier, identifier, hashRangeSize)) {
-				return fingerTable[i];
-			}
+	private NodeInfo findPredecessor(BigInteger identifier) {
+		NodeInfo nPrime = localNode;
+		NodeInfo nPrimeSuccessor = ChordGrpcClient.getSuccessor(nPrime.address, port);
+		while (!((RangeUtils.valueIsInRangeExclIncl(
+			identifier, nPrime.identifier, nPrimeSuccessor.identifier, hashRangeSize))
+			|| nPrime.address.equals(nPrimeSuccessor.address))) {
+			nPrime = ChordGrpcClient.closestPrecedingFinger(nPrime.address, port, identifier);
+			nPrimeSuccessor= ChordGrpcClient.getSuccessor(nPrime.address, port);
 		}
-		return new NodeInfo(localNode); // Return this node as the closest preceding node.
+
+		return new NodeInfo(nPrime);
 	}
 
 	/**

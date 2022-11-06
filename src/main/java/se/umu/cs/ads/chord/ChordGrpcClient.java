@@ -61,6 +61,23 @@ public class ChordGrpcClient {
 	}
 
 	/**
+	 * Call the getSuccessor method on another node.
+	 * @param address the address to the node.
+	 * @param port the port to use for connecting to the node.
+	 * @return the successor returned from the node.
+	 */
+	public static NodeInfo getSuccessor(String address, int port) {
+		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
+		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
+
+		Node response = stub.getSuccessor(Empty.getDefaultInstance());
+
+		channel.shutdown();
+
+		return new NodeInfo(new BigInteger(1,response.getIdentifier().getValue().toByteArray()), response.getAddress());
+	}
+
+	/**
 	 * Call the getPredecessor method on another node.
 	 * @param address the address to the node.
 	 * @param port the port to use for connecting to the node.
@@ -81,6 +98,25 @@ public class ChordGrpcClient {
 		} else {
 			return Optional.empty();
 		}
+	}
+
+	/**
+	 * Call the closestPrecedingFinger method on another node.
+	 * @param address the address to the node.
+	 * @param port the port to use for connecting to the node.
+	 * @param identifier the identifier to pass to the method.
+	 * @return the node returned from the node.
+	 */
+	public static NodeInfo closestPrecedingFinger(String address, int port, BigInteger identifier) {
+		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
+		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
+
+		Identifier request = Identifier.newBuilder().setValue(ByteString.copyFrom(identifier.toByteArray())).build();
+
+		Node response = stub.closestPrecedingFinger(request);
+
+		channel.shutdown();
+		return new NodeInfo(new BigInteger(1,response.getIdentifier().getValue().toByteArray()), response.getAddress());
 	}
 
 	/**
