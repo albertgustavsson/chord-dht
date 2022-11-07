@@ -126,6 +126,20 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	}
 
 	/**
+	 * Handler for incoming setPredecessor requests.
+	 *
+	 * @param request          the request.
+	 * @param responseObserver observer for the response.
+	 */
+	@Override
+	public void setPredecessor(Node request, StreamObserver<Empty> responseObserver) {
+		handler.setPredecessor(GrpcTypeHelper.nodeInfoFromNode(request));
+
+		responseObserver.onNext(Empty.getDefaultInstance());
+		responseObserver.onCompleted();
+	}
+
+	/**
 	 * Handler for incoming closestPrecedingFinger requests.
 	 *
 	 * @param request          the request.

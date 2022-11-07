@@ -12,6 +12,7 @@ service ChordService {
 	rpc findSuccessor(Identifier) returns (Node);
 	rpc getSuccessor(google.protobuf.Empty) returns (Node);
 	rpc getPredecessor(google.protobuf.Empty) returns (Node);
+	rpc setPredecessor(Node) returns (google.protobuf.Empty);
 	rpc closestPrecedingFinger(Identifier) returns (Node);
 	rpc notify(Node) returns (google.protobuf.Empty);
 }

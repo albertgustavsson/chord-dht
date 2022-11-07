@@ -97,6 +97,10 @@ public class ChordNode implements ChordGrpcServerHandler {
 		return new BigInteger(1, hashBytes).and(bitMask);
 	}
 
+	private BigInteger fingerStart(int finger) {
+		return localNode.id.add(BigInteger.ONE.shiftLeft(finger)).mod(hashRangeSize);
+	}
+
 	/**
 	 * Join an existing Chord network.
 	 *
@@ -123,7 +127,22 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 * @param address an arbitrary node already in the network
 	 */
 	private void initFingerTable(String address) {
-		// TODO: implement
+		fingerTable[0] = ChordGrpcClient.findSuccessor(address, port, fingerStart(0));
+
+		// predecessor = successor.predecessor
+		predecessor = ChordGrpcClient.getPredecessor(fingerTable[0].address, port);
+
+		// successor.predecessor = this node
+		ChordGrpcClient.setPredecessor(fingerTable[0].address, port, localNode);
+
+		// TODO: double-check and test
+		for (int i = 0; i < fingerTableSize - 1; i++) {
+			if (RangeUtils.valueIsInRangeInclExcl(fingerStart(i + 1), localNode.id, fingerTable[i].id, hashRangeSize)) {
+				fingerTable[i + 1] = fingerTable[i];
+			} else {
+				fingerTable[i + 1] = ChordGrpcClient.findSuccessor(address, port, fingerStart(i + 1));
+			}
+		}
 	}
 
 	/**
@@ -231,6 +250,14 @@ public class ChordNode implements ChordGrpcServerHandler {
 	@Override
 	public NodeInfo getPredecessor() {
 		return predecessor;
+	}
+
+	/**
+	 * Handler for incoming setPredecessor requests.
+	 */
+	@Override
+	public void setPredecessor(NodeInfo predecessor) {
+		this.predecessor = predecessor;
 	}
 
 	/**

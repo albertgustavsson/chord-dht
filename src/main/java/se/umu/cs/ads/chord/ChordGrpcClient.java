@@ -102,6 +102,22 @@ public class ChordGrpcClient {
 	}
 
 	/**
+	 * Call the setPredecessor method on another node.
+	 *
+	 * @param address     the address to the node.
+	 * @param port        the port to use for connecting to the node.
+	 * @param predecessor the node to set as the predecessor.
+	 */
+	public static void setPredecessor(String address, int port, NodeInfo predecessor) {
+		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
+		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
+
+		Empty response = stub.setPredecessor(GrpcTypeHelper.nodeFromNodeInfo(predecessor));
+
+		channel.shutdown();
+	}
+
+	/**
 	 * Call the closestPrecedingFinger method on another node.
 	 *
 	 * @param address    the address to the node.
