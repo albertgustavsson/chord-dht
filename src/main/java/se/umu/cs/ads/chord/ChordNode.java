@@ -149,7 +149,13 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 * Update all nodes whose finger tables should refer to this node.
 	 */
 	private void updateOthers() {
-		// TODO: implement
+		for (int i = 0; i < fingerTableSize; i++) {
+			// find last node p whose ith finger might be this node
+			// p = find_predecessor(n - 2^(i));
+			NodeInfo p = findPredecessor(localNode.id.subtract(BigInteger.ONE.shiftLeft(i)));
+			// p.update_finger_table(n, i);
+			ChordGrpcClient.updateFingerTable(p.address, port, localNode, i);
+		}
 	}
 
 	/**
