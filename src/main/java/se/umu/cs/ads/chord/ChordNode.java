@@ -23,26 +23,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	private int nextFingerToFix;
 
 	/**
-	 * Constructor for a Chord node.
-	 *
-	 * @throws NoSuchAlgorithmException if a MessageDigest for SHA-1 cannot be found.
-	 * @throws IOException              if there is an error with address resolution or server initialization.
-	 */
-	public ChordNode() throws NoSuchAlgorithmException, IOException {
-		hasher = MessageDigest.getInstance("SHA-1");
-		String localNodeAddress = InetAddress.getLocalHost().getHostAddress(); // Get the node's own address
-		BigInteger localNodeId = calculateHash(localNodeAddress); // Calculate the node's own identifier
-		localNode = new NodeInfo(localNodeId, localNodeAddress);
-
-		fingerTable[0] = new NodeInfo(localNode); // Successor is the node itself
-
-		// Start server for requests from other nodes
-		server = new ChordGrpcServer(this, port);
-		System.out.println("Node is listening on " + localNode.address + ":" + port);
-	}
-
-	/**
-	 * Constructor for a Chord node. Also joins and existing Chord network.
+	 * Constructor for a Chord node that also connects to an existing Chord network.
 	 *
 	 * @param otherNode address to a Chord node in an existing Chord network.
 	 *
@@ -50,8 +31,24 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 * @throws IOException              if there is an error with address resolution or server initialization.
 	 */
 	public ChordNode(String otherNode) throws NoSuchAlgorithmException, IOException {
-		this();
-		this.join(otherNode);
+		hasher = MessageDigest.getInstance("SHA-1");
+		String localNodeAddress = InetAddress.getLocalHost().getHostAddress(); // Get the node's own address
+		BigInteger localNodeId = calculateHash(localNodeAddress); // Calculate the node's own identifier
+		localNode = new NodeInfo(localNodeId, localNodeAddress);
+		// Start server for requests from other nodes
+		server = new ChordGrpcServer(this, port);
+		System.out.println("Node is listening on " + localNode.address + ":" + port);
+		join(otherNode);
+	}
+
+	/**
+	 * Constructor for a Chord node that forms a new Chord network.
+	 *
+	 * @throws NoSuchAlgorithmException if a MessageDigest for SHA-1 cannot be found.
+	 * @throws IOException              if there is an error with address resolution or server initialization.
+	 */
+	public ChordNode() throws NoSuchAlgorithmException, IOException {
+		this(null);
 	}
 
 	public BigInteger getLocalId() {
@@ -109,7 +106,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 		if (otherNode != null) { // Should join another node
 			initFingerTable(otherNode);
 			updateOthers();
-			// move keys in (predecessor; n] from successor
+			// TODO: move keys in (predecessor, n] from successor
 		} else { // This is the only node in the network
 			// All fingers point to the node itself
 			for (int i = 0; i < fingerTableSize; i++) {
@@ -118,10 +115,22 @@ public class ChordNode implements ChordGrpcServerHandler {
 			// The predecessor is the node itself
 			predecessor = new NodeInfo(localNode);
 		}
+	}
 
+	/**
+	 * Initialize finger table of local node.
+	 *
+	 * @param address an arbitrary node already in the network
+	 */
+	private void initFingerTable(String address) {
+		// TODO: implement
+	}
 
-		predecessor = null;
-		this.fingerTable[0] = ChordGrpcClient.findSuccessor(otherNode, port, localNode.id);
+	/**
+	 * Update all nodes whose finger tables should refer to this node.
+	 */
+	private void updateOthers() {
+		// TODO: implement
 	}
 
 	/**
