@@ -13,6 +13,7 @@ service ChordService {
 	rpc getSuccessor(google.protobuf.Empty) returns (Node);
 	rpc getPredecessor(google.protobuf.Empty) returns (Node);
 	rpc setPredecessor(Node) returns (google.protobuf.Empty);
+	rpc updateFingerTable(UpdateFingerTableRequest) returns(google.protobuf.Empty);
 	rpc closestPrecedingFinger(Identifier) returns (Node);
 	rpc notify(Node) returns (google.protobuf.Empty);
 }
@@ -29,4 +30,9 @@ message Identifier {
 message Node {
 	Identifier identifier = 1;
 	string address = 2;
+}
+
+message UpdateFingerTableRequest {
+	Node node = 1;
+	int32 index = 2;
 }

@@ -139,6 +139,14 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 		responseObserver.onCompleted();
 	}
 
+	@Override
+	public void updateFingerTable(UpdateFingerTableRequest request, StreamObserver<Empty> responseObserver) {
+		handler.updateFingerTable(GrpcTypeHelper.nodeInfoFromNode(request.getNode()), request.getIndex());
+
+		responseObserver.onNext(Empty.getDefaultInstance());
+		responseObserver.onCompleted();
+	}
+
 	/**
 	 * Handler for incoming closestPrecedingFinger requests.
 	 *

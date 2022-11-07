@@ -261,6 +261,29 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
+	 * If the passed node is the i:th finger of this node, update this node’s finger table with the passed node.
+	 *
+	 * @param node  the node that might be put in the finger table.
+	 * @param index the index in the finger table.
+	 */
+	@Override
+	public void updateFingerTable(NodeInfo node, int index) {
+		if (RangeUtils.valueIsInRangeInclExcl(node.id, localNode.id, fingerTable[index].id, hashRangeSize)) {
+			fingerTable[index] = node;
+
+			// pseudocode: predecessor.updateFingerTable(node, index)
+			ChordGrpcClient.updateFingerTable(predecessor.address, port, node, index);
+
+			/* TODO: Apparently the code from the paper is wrong, so this method should not work.
+			 *  Figure out how, and fix it.
+			 *  Potential issues:
+			 *  - the index should maybe be changed for the call to the predecessor
+			 *  - the range ends (inclusive / exclusive)
+			 */
+		}
+	}
+
+	/**
 	 * Find the highest known node preceding the given identifier based on this node's finger table.
 	 *
 	 * @param id the identifier.

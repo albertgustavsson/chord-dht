@@ -118,6 +118,24 @@ public class ChordGrpcClient {
 	}
 
 	/**
+	 * Call the updateFingerTable method on another node.
+	 *
+	 * @param address the address to the node.
+	 * @param port    the port to use for connecting to the node.
+	 * @param node    the node to potentially put in the target node's finger table.
+	 * @param index   the index in the finger table.
+	 */
+	public static void updateFingerTable(String address, int port, NodeInfo node, int index) {
+		ManagedChannel channel = ManagedChannelBuilder.forAddress(address, port).usePlaintext().build();
+		ChordServiceGrpc.ChordServiceBlockingStub stub = ChordServiceGrpc.newBlockingStub(channel);
+
+		Empty response = stub.updateFingerTable(UpdateFingerTableRequest.newBuilder().setNode(
+			GrpcTypeHelper.nodeFromNodeInfo(node)).setIndex(index).build());
+
+		channel.shutdown();
+	}
+
+	/**
 	 * Call the closestPrecedingFinger method on another node.
 	 *
 	 * @param address    the address to the node.

@@ -16,6 +16,8 @@ public interface ChordGrpcServerHandler {
 
 	void setPredecessor(NodeInfo predecessor);
 
+	void updateFingerTable(NodeInfo node, int index);
+
 	NodeInfo closestPrecedingFinger(BigInteger identifier);
 
 	void notify(NodeInfo potentialPredecessor);
