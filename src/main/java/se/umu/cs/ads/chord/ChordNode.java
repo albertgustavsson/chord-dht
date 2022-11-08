@@ -7,10 +7,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ChordNode implements ChordGrpcServerHandler {
 	private static final int port = 4321;
 	private static final int hashBits = 160;
 	private static final BigInteger hashRangeSize = BigInteger.ONE.shiftLeft(hashBits);
+
+	private final Logger logger = LoggerFactory.getLogger(ChordNode.class);
 
 	private final ChordGrpcServer server; // Server for incoming requests
 	private final MessageDigest hasher;
@@ -37,7 +42,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 		localNode = new NodeInfo(localNodeId, localNodeAddress);
 		// Start server for requests from other nodes
 		server = new ChordGrpcServer(this, port);
-		System.out.println("Node is listening on " + localNode.address + ":" + port);
+		logger.info("Node is listening on " + localNode.address + ":" + port);
 		join(otherNode);
 	}
 
@@ -219,7 +224,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public boolean healthCheck() {
-		System.out.println("Got healthCheck request");
+		logger.info("Got healthCheck request");
 		return true;
 	}
 
@@ -232,7 +237,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public NodeInfo findSuccessor(BigInteger id) {
-		System.out.println("Got findSuccessor request for identifier 0x" + id.toString(16));
+		logger.info("Got findSuccessor request for identifier 0x" + id.toString(16));
 
 		NodeInfo idPredecessor = this.findPredecessor(id);
 		return ChordGrpcClient.getSuccessor(idPredecessor.address, port);

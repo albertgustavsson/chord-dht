@@ -3,6 +3,9 @@ package se.umu.cs.ads.chord;
 import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.protobuf.Empty;
 
 import io.grpc.ManagedChannel;
@@ -11,6 +14,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 
 public class ChordGrpcClient {
+	private static final Logger logger = LoggerFactory.getLogger(ChordGrpcClient.class);
 	/**
 	 * Perform a health check of a Chord node.
 	 *
@@ -31,7 +35,7 @@ public class ChordGrpcClient {
 			status = response.getStatus();
 		} catch (StatusRuntimeException e) { // On timeout
 			if (e.getStatus().getCode().equals(Status.DEADLINE_EXCEEDED.getCode())) {
-				System.out.println("Health check deadline exceeded: " + e.getStatus().getDescription());
+				logger.info("Health check deadline exceeded: " + e.getStatus().getDescription());
 			} else {
 				channel.shutdown();
 				throw e;
