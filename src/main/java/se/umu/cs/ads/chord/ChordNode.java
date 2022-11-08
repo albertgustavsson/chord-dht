@@ -46,16 +46,6 @@ public class ChordNode implements ChordGrpcServerHandler {
 		join(otherNode);
 	}
 
-	/**
-	 * Constructor for a Chord node that forms a new Chord network.
-	 *
-	 * @throws NoSuchAlgorithmException if a MessageDigest for SHA-1 cannot be found.
-	 * @throws IOException              if there is an error with address resolution or server initialization.
-	 */
-	public ChordNode() throws NoSuchAlgorithmException, IOException {
-		this(null);
-	}
-
 	public BigInteger getLocalId() {
 		return localNode.id;
 	}
@@ -75,6 +65,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 * awaitTermination should be used to wait until all preexisting calls have finished.
 	 */
 	public void shutdown() {
+		logger.info("Shutting down the node");
 		server.shutdown();
 	}
 
@@ -113,10 +104,12 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	private void join(String otherNode) {
 		if (otherNode != null) { // Should join another node
+			logger.info("Joining node at " + otherNode);
 			initFingerTable(otherNode);
 			updateOthers();
 			// TODO: move keys in (predecessor, n] from successor
 		} else { // This is the only node in the network
+			logger.info("Creating a new Chord network");
 			// All fingers point to the node itself
 			for (int i = 0; i < fingerTableSize; i++) {
 				fingerTable[i] = new NodeInfo(localNode);
@@ -272,7 +265,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * If the passed node is the i:th finger of this node, update this node’s finger table with the passed node.
+	 * If the passed node is the ith finger of this node, update this node’s finger table with the passed node.
 	 *
 	 * @param node  the node that might be put in the finger table.
 	 * @param index the index in the finger table.
@@ -326,11 +319,16 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	public static void main(String[] args) throws NoSuchAlgorithmException, IOException, InterruptedException {
-		ChordNode node = new ChordNode();
+		System.setProperty("org.slf4j.simpleLogger.logFile", "System.out");
+
+		String otherNodeAddress = null;
+		if (args.length == 1) {
+			otherNodeAddress = args[0];
+		}
+		ChordNode node = new ChordNode(otherNodeAddress);
 		System.out.println(node);
 
-		System.out.println("Performing health check on self...");
-		System.out.println("Health check returned: " + ChordGrpcClient.healthCheck("localhost", port, 150));
+		System.out.println("Performing health check on self: " + ChordGrpcClient.healthCheck("localhost", port, 150));
 
 		BigInteger id;
 		id = node.getLocalId();

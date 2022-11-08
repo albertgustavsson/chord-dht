@@ -15,6 +15,7 @@ import io.grpc.StatusRuntimeException;
 
 public class ChordGrpcClient {
 	private static final Logger logger = LoggerFactory.getLogger(ChordGrpcClient.class);
+
 	/**
 	 * Perform a health check of a Chord node.
 	 *

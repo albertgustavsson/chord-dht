@@ -11,6 +11,8 @@ class NodeInfo {
 		this.address = address;
 	}
 
+	/* TODO: this constructor can probably be removed, since all fields are final.
+	    No need to copy an instance of NodeInfo.*/
 	public NodeInfo(NodeInfo other) { // Copy constructor
 		this(other.id, other.address);
 	}

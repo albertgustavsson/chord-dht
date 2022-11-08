@@ -3,7 +3,6 @@ package se.umu.cs.ads.chord;
 import java.io.IOException;
 import java.math.BigInteger;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
 
 import io.grpc.Context;
@@ -77,14 +76,11 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	 */
 	@Override
 	public void findSuccessor(Identifier request, StreamObserver<Node> responseObserver) {
-		BigInteger identifier = new BigInteger(1, request.getValue().toByteArray());
+		BigInteger identifier = GrpcTypeHelper.bigIntegerFromIdentifier(request);
 
 		NodeInfo successor = handler.findSuccessor(identifier);
 
-		Node response = Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(successor.id.toByteArray())).build())
-			.setAddress(successor.address)
-			.build();
+		Node response = GrpcTypeHelper.nodeFromNodeInfo(successor);
 
 		responseObserver.onNext(response);
 		responseObserver.onCompleted();
@@ -100,10 +96,7 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	public void getSuccessor(Empty request, StreamObserver<Node> responseObserver) {
 		NodeInfo successor = handler.getSuccessor();
 
-		Node response = Node.newBuilder()
-			.setIdentifier(Identifier.newBuilder().setValue(ByteString.copyFrom(successor.id.toByteArray())).build())
-			.setAddress(successor.address)
-			.build();
+		Node response = GrpcTypeHelper.nodeFromNodeInfo(successor);
 
 		responseObserver.onNext(response);
 		responseObserver.onCompleted();
@@ -155,7 +148,7 @@ public class ChordGrpcServer extends ChordServiceGrpc.ChordServiceImplBase {
 	 */
 	@Override
 	public void closestPrecedingFinger(Identifier request, StreamObserver<Node> responseObserver) {
-		BigInteger identifier = new BigInteger(1, request.getValue().toByteArray());
+		BigInteger identifier = GrpcTypeHelper.bigIntegerFromIdentifier(request);
 
 		NodeInfo finger = handler.closestPrecedingFinger(identifier);
 
