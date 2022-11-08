@@ -1,0 +1,18 @@
+version: '3'
+services:
+  chord-node-first:
+    image: openjdk:8
+    command: ["java", "-jar", "target/chord-1.0-SNAPSHOT.jar"]
+    volumes:
+      - ./target:/target
+    ports:
+      - "4321:4321"
+  chord-node:
+    image: openjdk:8
+    command:  ["java", "-jar", "target/chord-1.0-SNAPSHOT.jar", "chord-node-first"]
+    volumes:
+      - ./target:/target
+    expose:
+      - 4321
+    depends_on:
+      - chord-node-first

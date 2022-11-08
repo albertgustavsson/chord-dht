@@ -243,6 +243,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public NodeInfo getSuccessor() {
+		logger.info("Got getSuccessor request");
 		return new NodeInfo(fingerTable[0]);
 	}
 
@@ -253,6 +254,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public NodeInfo getPredecessor() {
+		logger.info("Got getPredecessor request");
 		return predecessor;
 	}
 
@@ -261,6 +263,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public void setPredecessor(NodeInfo predecessor) {
+		logger.info("Got setPredecessor request for Node " + predecessor.toString());
 		this.predecessor = predecessor;
 	}
 
@@ -272,6 +275,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public void updateFingerTable(NodeInfo node, int index) {
+		logger.info("Got updateFingerTable request for Node " + node.toString() + " at index " + index);
 		if (RangeUtils.valueIsInRangeInclExcl(node.id, localNode.id, fingerTable[index].id, hashRangeSize)) {
 			fingerTable[index] = node;
 
@@ -296,6 +300,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public NodeInfo closestPrecedingFinger(BigInteger id) {
+		logger.info("Got closestPrecedingFinger request for identifier 0x" + id.toString(16));
 		for (int i = fingerTableSize - 1; i >= 0; i--) {
 			if (fingerTable[i] != null && RangeUtils.valueIsInRangeExclExcl(fingerTable[i].id, localNode.id, id,
 				hashRangeSize)) {
@@ -312,6 +317,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	 */
 	@Override
 	public void notify(NodeInfo potentialPredecessor) {
+		logger.info("Got notify request for Node " + potentialPredecessor.toString());
 		if (predecessor == null || RangeUtils.valueIsInRangeExclExcl(
 			potentialPredecessor.id, predecessor.id, localNode.id, hashRangeSize)) {
 			predecessor = potentialPredecessor;
@@ -328,20 +334,8 @@ public class ChordNode implements ChordGrpcServerHandler {
 		ChordNode node = new ChordNode(otherNodeAddress);
 		System.out.println(node);
 
-		System.out.println("Performing health check on self: " + ChordGrpcClient.healthCheck("localhost", port, 150));
+		System.out.println("Performing health check on self: " + ChordGrpcClient.healthCheck("localhost", port, 500));
 
-		BigInteger id;
-		id = node.getLocalId();
-		System.out.println("Finding the successor to 0x" + id.toString(16) + " : " +
-			ChordGrpcClient.findSuccessor("localhost", port, id));
-		id = node.getLocalId().add(BigInteger.ONE);
-		System.out.println("Finding the successor to 0x" + id.toString(16) + " : " +
-			ChordGrpcClient.findSuccessor("localhost", port, id));
-		id = node.getLocalId().subtract(BigInteger.ONE);
-		System.out.println("Finding the successor to 0x" + id.toString(16) + " : " +
-			ChordGrpcClient.findSuccessor("localhost", port, id));
-
-		node.shutdown();
 		node.awaitTermination();
 	}
 }
