@@ -16,3 +16,5 @@ services:
       - 4321
     depends_on:
       - chord-node-first
+    deploy:
+      replicas: 2

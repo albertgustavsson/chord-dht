@@ -288,7 +288,8 @@ public class ChordNode implements ChordGrpcServerHandler {
 		logger.info("Got updateFingerTable request for Node " + node.toString() + " at index " + index);
 		logger.info("My id is 0x" + localNode.id.toString(16) + " and finger[" + index + "] is 0x" +
 			fingerTable[index].id.toString(16));
-		if (RangeUtils.valueIsInRangeInclExcl(node.id, localNode.id, fingerTable[index].id, hashRangeSize)) {
+		if (RangeUtils.valueIsInRangeExclExcl(node.id, localNode.id, fingerTable[index].id, hashRangeSize) ||
+			localNode.address.equals(fingerTable[index].address)) {
 			fingerTable[index] = node;
 			logger.info("Finger " + index + " is now " + fingerTable[index]);
 
