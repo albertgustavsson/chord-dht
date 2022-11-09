@@ -115,10 +115,10 @@ public class ChordNode implements ChordGrpcServerHandler {
 			logger.info("Creating a new Chord network");
 			// All fingers point to the node itself
 			for (int i = 0; i < fingerTableSize; i++) {
-				fingerTable[i] = new NodeInfo(localNode);
+				fingerTable[i] = localNode;
 			}
 			// The predecessor is the node itself
-			predecessor = new NodeInfo(localNode);
+			predecessor = localNode;
 		}
 	}
 
@@ -182,7 +182,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 
 		logger.info("Found predecessor " + nPrime);
 
-		return new NodeInfo(nPrime);
+		return nPrime;
 	}
 
 	/**
@@ -254,7 +254,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 	@Override
 	public NodeInfo getSuccessor() {
 		logger.info("Got getSuccessor request");
-		return new NodeInfo(fingerTable[0]);
+		return fingerTable[0];
 	}
 
 	/**
@@ -323,7 +323,7 @@ public class ChordNode implements ChordGrpcServerHandler {
 				return fingerTable[i];
 			}
 		}
-		return new NodeInfo(localNode); // Return this node as the closest preceding node.
+		return localNode; // Return this node as the closest preceding node.
 	}
 
 	/**
