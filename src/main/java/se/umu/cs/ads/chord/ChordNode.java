@@ -221,9 +221,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * Handler for incoming healthCheck requests.
+	 * Check if the node is healthy.
 	 *
-	 * @return the status of the node.
+	 * @return true if the node is healthy.
 	 */
 	@Override
 	public boolean healthCheck() {
@@ -232,11 +232,11 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * Handler for incoming findSuccessor requests.
+	 * Find the successor of an identifier.
 	 *
 	 * @param id the identifier to find the successor of.
 	 *
-	 * @return the node that succeeds the identifier.
+	 * @return the Chord node succeeding the identifier.
 	 */
 	@Override
 	public NodeInfo findSuccessor(BigInteger id) {
@@ -247,9 +247,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * Handler for incoming getSuccessor requests.
+	 * Get the successor of a Chord node.
 	 *
-	 * @return the successor of this node.
+	 * @return the other Chord node that succeeds the called Chord node.
 	 */
 	@Override
 	public NodeInfo getSuccessor() {
@@ -258,9 +258,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * Handler for incoming getPredecessor requests.
+	 * Get the predecessor of a Chord node.
 	 *
-	 * @return the predecessor of this node.
+	 * @return the other Chord node that precedes the called Chord node.
 	 */
 	@Override
 	public NodeInfo getPredecessor() {
@@ -269,7 +269,9 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * Handler for incoming setPredecessor requests.
+	 * Set the predecessor of a Chord node.
+	 *
+	 * @param predecessor the Chord node to set as predecessor.
 	 */
 	@Override
 	public void setPredecessor(NodeInfo predecessor) {
@@ -278,16 +280,18 @@ public class ChordNode implements ChordGrpcServerHandler {
 	}
 
 	/**
-	 * If the passed node is the ith finger of this node, update this node’s finger table with the passed node.
+	 * Update the finger table with a Chord node at a given index.
 	 *
-	 * @param node  the node that might be put in the finger table.
-	 * @param index the index in the finger table.
+	 * @param node  the Chord node to update the finger table with.
+	 * @param index the index of the finger table to update.
 	 */
 	@Override
 	public void updateFingerTable(NodeInfo node, int index) {
 		logger.info("Got updateFingerTable request for Node " + node.toString() + " at index " + index);
 		logger.info("My id is 0x" + localNode.id.toString(16) + " and finger[" + index + "] is 0x" +
 			fingerTable[index].id.toString(16));
+		/* Check if the passed node is in (localNode, fingerTable[index]). The Chord paper stated the range as including
+		    localNode, but this is wrong and can cause a node to add itself to its own finger table. */
 		if (RangeUtils.valueIsInRangeExclExcl(node.id, localNode.id, fingerTable[index].id, hashRangeSize) ||
 			localNode.address.equals(fingerTable[index].address)) {
 			fingerTable[index] = node;
@@ -295,24 +299,17 @@ public class ChordNode implements ChordGrpcServerHandler {
 
 			// pseudocode: predecessor.updateFingerTable(node, index)
 			ChordGrpcClient.updateFingerTable(predecessor.address, port, node, index);
-
-			/* TODO: Apparently the code from the paper is wrong, so this method should not work.
-			 *  Figure out how, and fix it.
-			 *  Potential issues:
-			 *  - the index should maybe be changed for the call to the predecessor
-			 *  - the range ends (inclusive / exclusive)
-			 */
 		} else {
 			logger.info("Did not update finger table");
 		}
 	}
 
 	/**
-	 * Find the highest known node preceding the given identifier based on this node's finger table.
+	 * Find the closest (to the identifier) Chord node in the finger table that precedes an identifier.
 	 *
 	 * @param id the identifier.
 	 *
-	 * @return the highest known node.
+	 * @return the closest finger that precedes the identifier.
 	 */
 	@Override
 	public NodeInfo closestPrecedingFinger(BigInteger id) {
